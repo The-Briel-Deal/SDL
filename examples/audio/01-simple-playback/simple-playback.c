@@ -6,7 +6,7 @@
  * This code is public domain. Feel free to use it for any purpose!
  */
 
-#define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
+#define SDL_MAIN_USE_CALLBACKS 1 /* use the callbacks instead of main() */
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -50,16 +50,16 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     /* SDL_OpenAudioDeviceStream starts the device paused. You have to tell it to start! */
     SDL_ResumeAudioStreamDevice(stream);
 
-    return SDL_APP_CONTINUE;  /* carry on with the program! */
+    return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
 /* This function runs when a new event (mouse input, keypresses, etc) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
     if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
+        return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
     }
-    return SDL_APP_CONTINUE;  /* carry on with the program! */
+    return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
 /* This function runs once per frame, and is the heart of the program. */
@@ -69,9 +69,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
        We're being lazy here, but if there's less than half a second queued, generate more.
        A sine wave is unchanging audio--easy to stream--but for video games, you'll want
        to generate significantly _less_ audio ahead of time! */
-    const int minimum_audio = (8000 * sizeof (float)) / 2;  /* 8000 float samples per second. Half of that. */
+    const int minimum_audio = (8000 * sizeof(float)) / 2; /* 8000 float samples per second. Half of that. */
     if (SDL_GetAudioStreamQueued(stream) < minimum_audio) {
-        static float samples[512];  /* this will feed 512 samples each frame until we get to our maximum. */
+        static float samples[2048]; /* this will feed 512 samples each frame until we get to our maximum. */
         int i;
 
         /* generate a 440Hz pure tone */
@@ -79,7 +79,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
             const float freq = 261.63f;
             const float phase = current_sine_sample * freq / 8000.0f;
             float sample = SDL_sinf(phase * 2 * SDL_PI_F);
-            samples[i] = sample;
+            if (sample >= 0)
+                samples[i] = 1;
+            else
+                samples[i] = -1;
             current_sine_sample++;
         }
 
@@ -87,14 +90,14 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         current_sine_sample %= 8000;
 
         /* feed the new data to the stream. It will queue at the end, and trickle out as the hardware needs more data. */
-        SDL_PutAudioStreamData(stream, samples, sizeof (samples));
+        SDL_PutAudioStreamData(stream, samples, sizeof(samples));
     }
 
     /* we're not doing anything with the renderer, so just blank it out. */
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    return SDL_APP_CONTINUE;  /* carry on with the program! */
+    return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
 /* This function runs once at shutdown. */
@@ -102,4 +105,3 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
     /* SDL will clean up the window/renderer for us. */
 }
-
